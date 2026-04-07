@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Price Predictor</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --accent: #2ea043;
+      --muted: #8b949e;
+      --text: #e6edf3;
+      --error: #f85149;
+      --shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at 20% 20%, #18212b, #0c1117 45%), radial-gradient(circle at 80% 0%, #112032, #0c1117 55%), var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      padding: 24px;
+    }
+    .card {
+      width: min(420px, 100%);
+      background: var(--panel);
+      border: 1px solid #1f2933;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      display: grid;
+      gap: 16px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.4rem;
+      letter-spacing: 0.01em;
+    }
+    label {
+      display: block;
+      font-size: 0.95rem;
+      margin-bottom: 8px;
+      color: var(--muted);
+    }
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #26303a;
+      background: #0f1620;
+      color: var(--text);
+      font-size: 1rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(46, 160, 67, 0.2);
+    }
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 1rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, #2ea043, #27914b);
+      color: white;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.2s ease;
+      box-shadow: 0 10px 25px rgba(46, 160, 67, 0.25);
+    }
+    button:active { transform: translateY(1px); }
+    .result, .error {
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #22313f;
+      background: #0f1620;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      word-break: break-word;
+    }
+    .error { border-color: var(--error); color: #ffb3b8; }
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div>
+      <h1>Price Predictor</h1>
+      <p style="color:var(--muted);margin:6px 0 0;">Enter square footage to get a quick estimate.</p>
+    </div>
+
+    <div>
+      <label for="size">Size (sq ft)</label>
+      <input id="size" name="size" type="number" step="1" placeholder="e.g., 1800" />
+    </div>
+
+    <button id="predictBtn">Get Estimate</button>
+
+    <div id="result" class="result" style="display:none;"></div>
+    <div id="error" class="error" style="display:none;"></div>
+
+    <footer>Powered by a simple linear rule of thumb.</footer>
+  </main>
+
+  <script>
+    const btn = document.getElementById('predictBtn');
+    const sizeInput = document.getElementById('size');
+    const resultBox = document.getElementById('result');
+    const errorBox = document.getElementById('error');
+
+    function showResult(message) {
+      resultBox.textContent = message;
+      resultBox.style.display = 'block';
+      errorBox.style.display = 'none';
+    }
+
+    function showError(message) {
+      errorBox.textContent = message;
+      errorBox.style.display = 'block';
+      resultBox.style.display = 'none';
+    }
+
+    async function predict() {
+      const size = sizeInput.value.trim();
+      try {
+        const res = await fetch('/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ size: Number(size) })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Unexpected error');
+        }
+        showResult(`Estimated price: $${data.price.toLocaleString()} (at ${data.currency || 'USD'})`);
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    btn.addEventListener('click', predict);
+    sizeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        predict();
+      }
+    });
+  </script>
+</body>
+</html>
